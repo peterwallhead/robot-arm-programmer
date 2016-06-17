@@ -1,3 +1,5 @@
+![](https://raw.githubusercontent.com/peterwallhead/robot-arm-programmer/master/screen.png)
+
 ## Notes
 -----
 
