@@ -1,0 +1,237 @@
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dlite.css') }}">
+<style>
+body {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 14px;
+    color: #333;
+    -webkit-font-smoothing: antialiased;
+    width:100%;
+    margin: 0;
+    padding: 0;
+    outline:0;
+    background: #FFF;
+}
+
+ol, ul, li {
+    margin: 0;
+    padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    padding: 0;
+    margin: 0;
+}
+
+*, *:before, *:after {
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+h1 {
+    font-size: 28px;
+    margin-bottom: 14px;
+}
+
+h2 {
+    font-size: 22px;
+    margin-bottom: 11px;
+}
+
+h3 {
+    font-size: 18px;
+    margin-bottom: 9px;
+}
+
+a, a:hover, a:visited {
+    color: #1EAEDB;
+}
+
+.card {
+    box-shadow: #d2d4de 0 1px 2px;
+    background: #fff;
+    padding: 10px 15px;
+    display: block;
+    margin-bottom: 20px;
+}
+
+.card.with-inner {
+    padding: 0;
+}
+
+.card.with-inner .card-inner {
+    padding: 10px 15px;
+}
+
+#program-timeline {
+    white-space: nowrap;  
+    width: 100%;
+    display: inline-block;
+    background: #FFF;
+    overflow: auto;
+    border: 1px solid #CCC;
+    min-height: 84px;
+}
+
+.function-block {
+    background: #2CCA90;
+    padding-bottom: 20px;
+    display: inline-block;
+    width: 80px;
+    margin: 2px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.delete-block {
+    text-align: right;
+    color: #FFF;
+    font-size: 10px;
+    margin-right: 5px;
+}
+
+.block-menu {
+    border-top: 1px solid #CCC;
+    margin-top: 30px;
+    padding-top: 30px;
+}
+
+.block-button {
+    width: 100%;
+    display: inline-block;
+    border: 1px solid #CCC;
+    padding: 5px;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+
+.block-button img {
+    float: left;
+    margin-right: 20px;
+}
+
+.block-button .label {
+    float: left;
+    font-size: 16px;
+    margin-top: 25px;
+}
+
+#run-program {
+    width: 90px;
+    font-size: 16px;
+    color: #FFF;
+    padding: 8px;
+    font-weight: bold;
+    background: #337ab7;
+    text-align: center;
+    margin-top: 15px;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+    border: 1px solid #2e6da4;
+    cursor: pointer;
+}
+</style>
+<script src="{{ url_for('static', filename='js/jquery-1.11.3.js') }}"></script>
+<script src="{{ url_for('static', filename='js/jquery-ui.js') }}"></script>
+
+<div class="col-md-3 col-lg-3">
+    <div class="card with-inner">
+        <div class="card-inner">
+            <h2>Build your program</h2>
+            <p>Select the buttons below to add movement blocks to your timeline. Click and drag blocks to reorder them.</p>
+            <p>Click <strong>RUN</strong> to see your program in action.</p>
+            <div class="block-menu">
+                <div onclick="javascript:add_program_block('up')" class="block-button"><img src="{{ url_for('static', filename='img/arrow-up.png') }}" /><div class="label">Move arm up</div></div>
+                <div onclick="javascript:add_program_block('down')" class="block-button"><img src="{{ url_for('static', filename='img/arrow-down.png') }}" /><div class="label">Move arm down</div></div>
+                <div onclick="javascript:add_program_block('left')" class="block-button"><img src="{{ url_for('static', filename='img/arrow-left.png') }}" /><div class="label">Rotate arm left</div></div>
+                <div onclick="javascript:add_program_block('right')" class="block-button"><img src="{{ url_for('static', filename='img/arrow-right.png') }}" /><div class="label">Rotate arm right</div></div>
+            </div> 
+        </div>
+    </div>
+</div>
+
+<div class="col-md-9 col-lg-9">
+    <div class="card with-inner">
+        <div class="card-inner">
+            <h3>PROGRAM TIMELINE</h3>
+            <div id="program-timeline" class="drag"></div>
+            <button id="run-program">RUN</button>
+        </div>
+    </div>
+</div>
+<div id="template-up-block" style="display:none"><div class="delete-block" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">x</div><img src="{{ url_for('static', filename='img/function-block-up.png') }}" /></div>
+<div id="template-down-block" style="display:none"><div class="delete-block" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">x</div><img src="{{ url_for('static', filename='img/function-block-down.png') }}" /></div>
+<div id="template-left-block" style="display:none"><div class="delete-block" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">x</div><img src="{{ url_for('static', filename='img/function-block-left.png') }}" /></div>
+<div id="template-right-block" style="display:none"><div class="delete-block" onclick="this.parentNode.parentNode.removeChild(this.parentNode);">x</div><img src="{{ url_for('static', filename='img/function-block-right.png') }}" /></div>
+<script>
+    var program_loop = [];
+
+    $(function() {
+    
+        $(".drag")
+        .sortable({
+            stop : function(event,ui){ save_program(); }
+        });
+
+    });
+    
+    function add_program_block(block_type) {  
+        var div1 = document.createElement('div');  
+      
+        div1.className += 'function-block';
+        div1.setAttribute("data-id", block_type);
+        // Get template data  
+        div1.innerHTML = document.getElementById('template-'+block_type+'-block').innerHTML;  
+
+        document.getElementById('program-timeline').appendChild(div1);  
+    }
+
+    function save_program() {
+        program_loop.length = 0;
+        var timeline = "program-timeline";
+
+        $.each($('#'+timeline+' .function-block'), function() { 
+            var action_direction = $(this).data('id');
+
+            program_loop.push(action_direction);
+            
+        }); 
+        console.log(program_loop);
+    };
+
+    function do_step(step) {
+        if(step < program_loop.length) {
+            //Call the move API with the required direction
+            $.get("/move/"+program_loop[step], function() {
+                
+                step++;
+                
+                //Complete the next step in the program
+                do_step(step);
+                console.log("Arm moved");      
+            })
+            .fail(function() {
+                console.log("Arm failed to move");
+            })   
+        }
+    }
+
+    function run_program() {
+        //Ensure all timeline changes are saved
+        save_program();
+
+        //Reset step count
+        var step = 0;
+
+        //Start processing program steps
+        do_step(step);
+    };
+
+    $("#run-program").click(function() {
+        run_program();
+    });
+</script>
+
